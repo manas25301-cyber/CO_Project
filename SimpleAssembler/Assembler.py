@@ -10,7 +10,7 @@ def register(r):
         b='01000'
     return b
 
-def S-Type(key,rs2,s):
+def S_Type(key,rs2,s):
     val= int(s[:s.index("(")])
     rs1= s[s.index("(")+1 : -1]
     val_12bit = format(val, '012b')
@@ -30,7 +30,8 @@ def S-Type(key,rs2,s):
     return(val_12bit[0:7]+rs2_B+rs1_B+funct3+val_12bit[7:]+opcode)
 
 
-def U-Type():
-
-def J-Type():
+def U_Type():
+    return 0
+def J_Type():
+    return 0
 
