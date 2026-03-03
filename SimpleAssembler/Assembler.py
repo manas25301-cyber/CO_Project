@@ -1,30 +1,34 @@
-import os
+import sys
 
-base=os.path.dirname(__file__)
-path=os.path.join(base,"test_case_1.txt")
-
+PC=0
 cmd=[]
-with open(path) as f:
-    tmp=[]
-    x=f.read()
+labels=[]
+lines=sys.stdin.read().splitlines()
+
+for x in lines:
     tmp=x.split("\n")
     for i in tmp:
         if i=="":
             continue
         i=i.split()
         if len(i)!=2:
-            continue
+            i[0]=i[0].replace(":", "")
+            labels.append([i[0], format(PC,'08x')])
+            i.pop(0)
         i[-1]=i[-1].split(",")
+        i.append(format(PC,'08x'))
         cmd.append(i)
+        PC+=4
 
 instr={"R":["add","sub","sll","slt","sltu","xor","srl","or","and"],"I":["lw","addi","sltiu","jalr"],"S":["sw"],"B":["beq","bne","blt","bge","bltu","bgeu"],"U":["lui","auipc"],"J":["jal"]}
 
-#exe->Each executable, format->[instruction, [rd, rs1, rs2]] (Nested List)
+#exe->Each executable, format->[instruction, [rd, rs1, rs2], PC] (Nested List)
 
 def main():
     for exe in cmd:
+        #print(exe)
         idx=0
-        for chk in list(instr.values()):
+        for chk in list(instr.values()): #Checks Each List of the dictionary
             if exe[0] in chk:
                 break
             else:
@@ -45,7 +49,7 @@ def main():
             print("S")         
 
         elif idx==3: #execute B-type
-            print("B")    
+            print(B_type(exe[0],exe[1][0],exe[1][1],exe[1][2],exe[-1]))    
 
         elif idx==4: #execute U-type
             print("U")
@@ -64,13 +68,13 @@ def register(r):
             b=f'{i:05b}'
             c=1
             break
-    if c=='fp':
+    if r=='fp':
         b='01000'
     return b
 
 def I_type(ins, rd, rs, imm):
     s=''
-    imm=format(int(imm) & 0xFF, '012b')
+    imm=format(int(imm) & 0xFFF, '012b')
     rd=register(rd)
     rs=register(rs)
     s=s+imm
@@ -86,16 +90,37 @@ def I_type(ins, rd, rs, imm):
         s="error"
     return s
 
+def B_type(ins,r1,r2,imm,currentpc):
+    opcode = '1100011'
+    r1_ = register(r1)
+    r2_ = register(r2)
+    func3=""
+    if ins == "beq":
+        func3 = "000"
+    elif ins == "bne":
+        func3 = "001"
+    elif ins == "blt":
+        func3 = "100"
+    elif ins == "bge":
+        func3 = "101"
+    elif ins == "bltu":
+        func3 = "110"
+    elif ins == "bgeu":
+        func3 = "111"
+    j=-1
+    for i in range(len(labels)):
+        if labels[i][0]==imm:
+            j=i
+            break
+    if j!=-1:
+        currentpc = int(currentpc, 16)
+        label_program_counter = int(labels[j][1], 16)
+        offset = label_program_counter - currentpc
+        imm = offset
+    imm = int(imm)
+    imm = imm // 2
+    immcode = format(imm & 0xFFF, '012b')
+    code = immcode[0] + immcode[2:8] + r2_ + r1_ + func3 + immcode[8:] + immcode[1] + opcode
+    return code
+
 main()
-
-
-
-
-
-
-
-
-
-
-
-
