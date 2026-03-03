@@ -26,7 +26,6 @@ instr={"R":["add","sub","sll","slt","sltu","xor","srl","or","and"],"I":["lw","ad
 
 def main():
     for exe in cmd:
-        #print(exe)
         idx=0
         for chk in list(instr.values()): #Checks Each List of the dictionary
             if exe[0] in chk:
@@ -35,7 +34,7 @@ def main():
                 idx+=1
 
         if idx==0: #execute R-type
-            print("R")
+            print(R_type(exe[0], exe[1][0], exe[1][1], exe[1][2]))
 
         elif idx==1: #execute I-type
             if exe[0]=="lw":
@@ -46,16 +45,23 @@ def main():
                 print(I_type(exe[0], exe[1][0], exe[1][1], exe[1][2]))
 
         elif idx==2: #execute S-type
-            print("S")         
+            print(S_Type(exe[0], exe[1][0], exe[1][1]))         
 
         elif idx==3: #execute B-type
             print(B_type(exe[0],exe[1][0],exe[1][1],exe[1][2],exe[-1]))    
 
         elif idx==4: #execute U-type
-            print("U")
+            print(U_Type(exe[0], exe[1][0], exe[1][1]))
             
         elif idx==5: #execute J-type
-            print("J")
+            currentpc = int(exe[-1], 16)
+            for i in range(len(labels)):
+                if labels[i][0] == exe[1][1]:
+                    j = i
+                    break
+            label_program_counter = int(labels[j][1], 16)
+            offset = label_program_counter - currentpc
+            print(J_Type(exe[0],exe[1][0],offset))
             
         else: #error:cmd not found
             print("NA")                   
@@ -71,6 +77,23 @@ def register(r):
     if r=='fp':
         b='01000'
     return b
+
+def R_type(ins,rd,rs1,rs2):
+        opcode="0110011"
+        rd=register(rd)
+        rs1=register(rs1)
+        rs2=register(rs2)
+        func3= ["000","000","001","010","011","100","101","110","111"]
+        func7=["0000000","0100000","0000000","0000000","0000000","0000000","0000000","0000000","0000000"]
+        inst=["add","sub","sll","slt","sltu","xor","srl","or","and"]
+
+        for i in range(9):
+            if inst[i]==ins:
+                code= func7[i] + rs2 + rs1 + func3[i] + rd + opcode
+                break
+        else:
+            code="error"
+        return code
 
 def I_type(ins, rd, rs, imm):
     s=''
@@ -89,6 +112,29 @@ def I_type(ins, rd, rs, imm):
     else:
         s="error"
     return s
+
+def S_Type(key, rs2, s):
+    val = int(s[:s.index("(")])
+    rs1 = s[s.index("(")+1 : -1]
+
+    val_12bit = format(val & 0xFFF, '012b')
+
+    rs2_B = register(rs2)
+    rs1_B = register(rs1)
+
+    opcode = "0100011"
+
+    if key == "sb":
+        funct3 = "000"
+    elif key == "sh":
+        funct3 = "001"
+    elif key == "sw":
+        funct3 = "010"
+    else:
+        raise ValueError("Invalid S-type instruction")
+
+    return (val_12bit[0:7] + rs2_B + rs1_B + funct3 +
+            val_12bit[7:] + opcode)
 
 def B_type(ins,r1,r2,imm,currentpc):
     opcode = '1100011'
@@ -122,5 +168,33 @@ def B_type(ins,r1,r2,imm,currentpc):
     immcode = format(imm & 0xFFF, '012b')
     code = immcode[0] + immcode[2:8] + r2_ + r1_ + func3 + immcode[8:] + immcode[1] + opcode
     return code
+
+def U_Type(key,rd,imm):
+    imm_20bit = format(imm & 0xFFFFF, '020b')
+    rd_B= register(rd)
+    if key=="lui":
+        opcode="0110111"
+    elif key=="auipc":
+        opcode="0010111"
+
+    return(imm_20bit+rd_B+opcode)
+
+def J_Type(key,rd,offset):
+    offset=(offset)
+    if offset % 2 != 0:
+        raise ValueError("Offset must be 2-byte aligned")
+
+    offset=offset//2
+
+    if offset<-(2**20) or offset>=(2**20):
+        raise ValueError("Offset out of 21-bit range")
+
+    imm = offset & 0x1FFFFF
+    offset_20bit = format(imm, '021b')
+
+    rd_B= register(rd)
+    opcode="1101111"
+
+    return(offset_20bit[0]+offset_20bit[10:20]+offset_20bit[9]+offset_20bit[1:9]+rd_B+opcode)
 
 main()
