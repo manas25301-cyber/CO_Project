@@ -63,7 +63,3 @@ def J_Type(key,rd,offset):
     opcode="1101111"
 
     return(offset_20bit[0]+offset_20bit[10:20]+offset_20bit[9]+offset_20bit[1:9]+rd_B+opcode)
-
-print(S_Type("sw","s2","0(s0)"))
-print(U_Type("lui","ra",20))
-print(J_Type("jal","ra",20))
