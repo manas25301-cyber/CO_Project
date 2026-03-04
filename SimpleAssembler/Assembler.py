@@ -80,7 +80,8 @@ def main():
 
 def register(r):
     try:
-        reg=['zero','ra','sp','gp','tp','t0','t1','t2','s0','s1','a0','a1','a2','a3','a4','a5','a6','a7','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11','t3','t4','t5','t6']
+        reg=['zero','ra','sp','gp','tp','t0','t1','t2','s0','s1','a0','a1','a2','a3','a4','a5','a6','a7','s2','s3','s4','s5'
+            ,'s6','s7','s8','s9','s10','s11','t3','t4','t5','t6']
         c=0
         for i in range(32):
             if reg[i]==r:
@@ -91,7 +92,7 @@ def register(r):
             b='01000'
         return b
     except:
-        raise ValueError("ERROR: Invalid Register Provided")
+        raise ValueError("ERROR:Invalid Register Provided")
 
 def R_type(ins,rd,rs1,rs2):
         opcode="0110011"
@@ -133,6 +134,8 @@ def I_type(ins, rd, rs, imm):
 def S_Type(key, rs2, s):
     val = int(s[:s.index("(")])
     rs1 = s[s.index("(")+1 : -1]
+    if val < -2048 or val > 2047:
+        raise ValueError("S-type immediate out of 12-bit signed range (-2048 to 2047)")
     if val < -2048 or val > 2047:
         raise ValueError("S-type immediate out of 12-bit signed range (-2048 to 2047)")
     val_12bit = format(val & 0xFFF, '012b')
@@ -189,12 +192,22 @@ def B_type(ins,r1,r2,imm,currentpc):
         raise ValueError("Branch offset must be multiple of 2")
     if imm < -4096 or imm > 4094:
         raise ValueError("Branch offset out of range")
+    try:
+        imm = int(imm)
+    except:
+        raise ValueError("ERROR: INVALID LABEL GIVEN")
+    if imm % 2 != 0:
+        raise ValueError("Branch offset must be multiple of 2")
+    if imm < -4096 or imm > 4094:
+        raise ValueError("Branch offset out of range")
     imm = imm // 2
     immcode = format(imm & 0xFFF, '012b')
     code = immcode[0] + immcode[2:8] + r2_ + r1_ + func3 + immcode[8:] + immcode[1] + opcode
     return code
 
 def U_Type(key,rd,imm):
+    if imm < -(2**19) or imm > (2**19)-1:
+        raise ValueError("U-type immediate out of 20-bit signed range")
     if imm < -(2**19) or imm > (2**19)-1:
         raise ValueError("U-type immediate out of 20-bit signed range")
     imm_20bit = format(imm & 0xFFFFF, '020b')
