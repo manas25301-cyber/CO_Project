@@ -122,9 +122,11 @@ def R_type(ins,rd,rs1,rs2):
         return code
 
 def I_type(ins, rd, rs, imm):
+    imm=int(imm)
     if (imm<-2048 or imm>2047):
         return "Immediate out of range"
     s=''
+    
     imm=format(int(imm) & 0xFFF, '012b')
     rd=register(rd)
     rs=register(rs)
