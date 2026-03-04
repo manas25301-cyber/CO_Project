@@ -36,30 +36,6 @@ def is_hex(s):
         return 1
     except ValueError:
         return 0
-    lines = f.readlines()
-
-for i in lines:
-    i = i.strip()
-    if i == "":
-        continue
-
-    if ":" in i:
-        label, i = i.split(":", 1)
-        label = label.strip()
-        labels.append([label, format(PC, '08x')])
-        i = i.strip()
-
-        if i == "":
-            continue  # label-only line
-
-    ins, _, opp = i.partition(" ")
-
-    opp_array = []
-    if opp:
-        opp_array = [x.strip() for x in opp.split(",")]
-
-    cmd.append([ins, opp_array, format(PC, '08x')])
-    PC += 4
 
 instr={"R":["add","sub","sll","slt","sltu","xor","srl","or","and"],"I":["lw","addi","sltiu","jalr"],"S":["sw"],"B":["beq","bne","blt","bge","bltu","bgeu"],"U":["lui","auipc"],"J":["jal"]}
 
@@ -132,18 +108,6 @@ def register(r):
             return f'{i:05b}'
 
     raise ValueError(f"Invalid register provided: {r}")
-    try:
-        reg=['zero','ra','sp','gp','tp','t0','t1','t2','s0','s1','a0','a1','a2','a3','a4','a5','a6','a7','s2','s3','s4','s5',
-            's6','s7','s8','s9','s10','s11','t3','t4','t5','t6']
-        for i in range(32):
-            if reg[i]==r:
-                b=f'{i:05b}'
-                break
-        if r=='fp':
-            b='01000'
-        return b
-    except:
-        raise ValueError(f"ERROR:Invalid Register Provided: {r}")
 
 def R_type(ins,rd,rs1,rs2):
         opcode="0110011"
@@ -164,12 +128,9 @@ def R_type(ins,rd,rs1,rs2):
 
 def I_type(ins, rd, rs, imm):
     imm=int(imm)
-    imm=int(imm)
     if (imm<-2048 or imm>2047):
         raise ValueError("Immediate out of range")
     s=''
-    
-    imm=format(int(imm) & 0xFFF, '012b')
     imm=format(imm & 0xFFF, '012b')
     rd=register(rd)
     rs=register(rs)
