@@ -7,12 +7,16 @@ def is_hex(s):
     except ValueError:
         return 0
 
+input_file=sys.argv[1]
+output_file=sys.argv[2]
+
 PC=0
 cmd=[]
 labels=[]
-lines=sys.stdin.read().splitlines()
 
-for x in lines:
+with open(input_file) as f:
+    tmp=[]
+    x=f.read()
     tmp=x.split("\n")
     for i in tmp:
         if i=="":
@@ -31,7 +35,12 @@ instr={"R":["add","sub","sll","slt","sltu","xor","srl","or","and"],"I":["lw","ad
 
 #exe->Each executable, format->[instruction, [rd, rs1, rs2], PC] (Nested List)
 
+f=open(output_file, 'w')
+f.close() #Makes sure output file is empty
+
 def main():
+    f=open(output_file, 'a')
+    s=''
     for exe in cmd:
         idx=0
         for chk in list(instr.values()): #Checks Each List of the dictionary
@@ -41,27 +50,27 @@ def main():
                 idx+=1
 
         if idx==0: #execute R-type
-            print(R_type(exe[0], exe[1][0], exe[1][1], exe[1][2]))
+            s=R_type(exe[0], exe[1][0], exe[1][1], exe[1][2])
 
         elif idx==1: #execute I-type
             if exe[0]=="lw":
                 tmp=exe[1][1]
                 imm, rs = tmp.replace(")", "").split("(")
-                print(I_type(exe[0], exe[1][0], rs, imm))
+                s=I_type(exe[0], exe[1][0], rs, imm)
             else:
-                print(I_type(exe[0], exe[1][0], exe[1][1], exe[1][2]))
+                s=I_type(exe[0], exe[1][0], exe[1][1], exe[1][2])
 
         elif idx==2: #execute S-type
-            print(S_Type(exe[0], exe[1][0], exe[1][1]))         
+            s=S_Type(exe[0], exe[1][0], exe[1][1])       
 
         elif idx==3: #execute B-type
-            print(B_type(exe[0],exe[1][0],exe[1][1],exe[1][2],exe[-1]))    
+            s=B_type(exe[0],exe[1][0],exe[1][1],exe[1][2],exe[-1])    
 
         elif idx==4: #execute U-type
             if is_hex(exe[1][1])==1:
-                print(U_Type(exe[0], exe[1][0], int(exe[1][1],16)))
+                s=U_Type(exe[0], exe[1][0], int(exe[1][1],16))
             else:
-                print(U_Type(exe[0], exe[1][0], exe[1][1]))
+                s=U_Type(exe[0], exe[1][0], exe[1][1])
             
         elif idx==5: #execute J-type
             currentpc = int(exe[-1], 16)
@@ -71,10 +80,13 @@ def main():
                     break
             label_program_counter = int(labels[j][1], 16)
             offset = label_program_counter - currentpc
-            print(J_Type(exe[0],exe[1][0],offset))
+            s=J_Type(exe[0],exe[1][0],offset)
             
         else: #error:cmd not found
-            print("NA")                   
+            print("NA")        
+        f.write(s)
+        f.write("\n")
+    f.close()          
 
 def register(r):
     try:
@@ -110,6 +122,8 @@ def R_type(ins,rd,rs1,rs2):
         return code
 
 def I_type(ins, rd, rs, imm):
+    if (imm<-2048 or imm>2047):
+        return "Immediate out of range"
     s=''
     imm=format(int(imm) & 0xFFF, '012b')
     rd=register(rd)
@@ -132,6 +146,8 @@ def S_Type(key, rs2, s):
     rs1 = s[s.index("(")+1 : -1]
     if val < -2048 or val > 2047:
         raise ValueError("S-type immediate out of 12-bit signed range (-2048 to 2047)")
+    if val < -2048 or val > 2047:
+        raise ValueError("S-type immediate out of 12-bit signed range (-2048 to 2047)")
     val_12bit = format(val & 0xFFF, '012b')
 
     rs2_B = register(rs2)
@@ -150,7 +166,6 @@ def S_Type(key, rs2, s):
 
     return (val_12bit[0:7] + rs2_B + rs1_B + funct3 +
             val_12bit[7:] + opcode)
-
 
 def B_type(ins,r1,r2,imm,currentpc):
     opcode = '1100011'
@@ -187,12 +202,22 @@ def B_type(ins,r1,r2,imm,currentpc):
         raise ValueError("Branch offset must be multiple of 2")
     if imm < -4096 or imm > 4094:
         raise ValueError("Branch offset out of range")
+    try:
+        imm = int(imm)
+    except:
+        raise ValueError("ERROR: INVALID LABEL GIVEN")
+    if imm % 2 != 0:
+        raise ValueError("Branch offset must be multiple of 2")
+    if imm < -4096 or imm > 4094:
+        raise ValueError("Branch offset out of range")
     imm = imm // 2
     immcode = format(imm & 0xFFF, '012b')
     code = immcode[0] + immcode[2:8] + r2_ + r1_ + func3 + immcode[8:] + immcode[1] + opcode
     return code
 
 def U_Type(key,rd,imm):
+    if imm < -(2**19) or imm > (2**19)-1:
+        raise ValueError("U-type immediate out of 20-bit signed range")
     if imm < -(2**19) or imm > (2**19)-1:
         raise ValueError("U-type immediate out of 20-bit signed range")
     imm_20bit = format(imm & 0xFFFFF, '020b')
