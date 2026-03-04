@@ -136,6 +136,7 @@ def S_Type(key, rs2, s):
     return (val_12bit[0:7] + rs2_B + rs1_B + funct3 +
             val_12bit[7:] + opcode)
 
+
 def B_type(ins,r1,r2,imm,currentpc):
     opcode = '1100011'
     r1_ = register(r1)
@@ -163,7 +164,14 @@ def B_type(ins,r1,r2,imm,currentpc):
         label_program_counter = int(labels[j][1], 16)
         offset = label_program_counter - currentpc
         imm = offset
-    imm = int(imm)
+    try:
+        imm = int(imm)
+    except:
+        raise ValueError("ERROR: INVALID LABEL GIVEN")
+    if imm % 2 != 0:
+        raise ValueError("Branch offset must be multiple of 2")
+    if imm < -4096 or imm > 4094:
+        raise ValueError("Branch offset out of range")
     imm = imm // 2
     immcode = format(imm & 0xFFF, '012b')
     code = immcode[0] + immcode[2:8] + r2_ + r1_ + func3 + immcode[8:] + immcode[1] + opcode
