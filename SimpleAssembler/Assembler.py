@@ -1,28 +1,34 @@
 import sys
 
-input_file=sys.argv[1]
-output_file=sys.argv[2]
+input_file = sys.argv[1]
+output_file = sys.argv[2]
 
-PC=0
-cmd=[]
-labels=[]
+PC = 0
+cmd = []
+labels = []
 
 with open(input_file) as f:
-    tmp=[]
-    x=f.read()
-    tmp=x.split("\n")
+    tmp = []
+    x = f.read()
+    tmp = x.split("\n")
     for i in tmp:
-        if i=="":
+        i=i.strip()
+        if i == "":
             continue
-        i=i.split()
-        if len(i)!=2:
-            i[0]=i[0].replace(":", "")
-            labels.append([i[0], format(PC,'08x')])
-            i.pop(0)
-        i[-1]=i[-1].split(",")
-        i.append(format(PC,'08x'))
-        cmd.append(i)
-        PC+=4
+
+        if ":" in i:
+            label,instructions= i.split(":",1)
+            label = label.strip()
+            labels.append([label, format(PC, '08x')])
+            i = instructions.strip()
+            if i == "":
+                continue
+        ins,_,opp=i.partition(" ")
+        opp_array=[]
+        if opp:
+            opp_array=[x.strip() for x in opp.split(",")]
+        cmd.append([ins,opp_array,format(PC, '08x')])
+        PC += 4
 
 instr={"R":["add","sub","sll","slt","sltu","xor","srl","or","and"],"I":["lw","addi","sltiu","jalr"],"S":["sw"],"B":["beq","bne","blt","bge","bltu","bgeu"],"U":["lui","auipc"],"J":["jal"]}
 
