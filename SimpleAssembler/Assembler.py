@@ -13,7 +13,8 @@ def register(r):
 def S_Type(key, rs2, s):
     val = int(s[:s.index("(")])
     rs1 = s[s.index("(")+1 : -1]
-
+    if val < -2048 or val > 2047:
+        raise ValueError("S-type immediate out of 12-bit signed range (-2048 to 2047)")
     val_12bit = format(val & 0xFFF, '012b')
 
     rs2_B = register(rs2)
@@ -35,6 +36,8 @@ def S_Type(key, rs2, s):
 
 
 def U_Type(key,rd,imm):
+    if imm < -(2**19) or imm > (2**19)-1:
+        raise ValueError("U-type immediate out of 20-bit signed range")
     imm_20bit = format(imm & 0xFFFFF, '020b')
     rd_B= register(rd)
     if key=="lui":
