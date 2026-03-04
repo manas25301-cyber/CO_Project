@@ -8,21 +8,30 @@ cmd=[]
 labels=[]
 
 with open(input_file) as f:
-    tmp=[]
-    x=f.read()
-    tmp=x.split("\n")
-    for i in tmp:
-        if i=="":
-            continue
-        i=i.split()
-        if len(i)!=2:
-            i[0]=i[0].replace(":", "")
-            labels.append([i[0], format(PC,'08x')])
-            i.pop(0)
-        i[-1]=i[-1].split(",")
-        i.append(format(PC,'08x'))
-        cmd.append(i)
-        PC+=4
+    lines = f.readlines()
+
+for i in lines:
+    i = i.strip()
+    if i == "":
+        continue
+
+    if ":" in i:
+        label, i = i.split(":", 1)
+        label = label.strip()
+        labels.append([label, format(PC, '08x')])
+        i = i.strip()
+
+        if i == "":
+            continue  # label-only line
+
+    ins, _, opp = i.partition(" ")
+
+    opp_array = []
+    if opp:
+        opp_array = [x.strip() for x in opp.split(",")]
+
+    cmd.append([ins, opp_array, format(PC, '08x')])
+    PC += 4
 
 instr={"R":["add","sub","sll","slt","sltu","xor","srl","or","and"],"I":["lw","addi","sltiu","jalr"],"S":["sw"],"B":["beq","bne","blt","bge","bltu","bgeu"],"U":["lui","auipc"],"J":["jal"]}
 
@@ -73,26 +82,24 @@ def main():
             s=J_Type(exe[0],exe[1][0],offset)
             
         else: #error:cmd not found
-            print("NA")        
+            s="ERROR"       
         f.write(s)
         f.write("\n")
     f.close()          
 
 def register(r):
     try:
-        reg=['zero','ra','sp','gp','tp','t0','t1','t2','s0','s1','a0','a1','a2','a3','a4','a5','a6','a7','s2','s3','s4','s5'
-            ,'s6','s7','s8','s9','s10','s11','t3','t4','t5','t6']
-        c=0
+        reg=['zero','ra','sp','gp','tp','t0','t1','t2','s0','s1','a0','a1','a2','a3','a4','a5','a6','a7','s2','s3','s4','s5',
+            's6','s7','s8','s9','s10','s11','t3','t4','t5','t6']
         for i in range(32):
             if reg[i]==r:
                 b=f'{i:05b}'
-                c=1
                 break
         if r=='fp':
             b='01000'
         return b
     except:
-        raise ValueError("ERROR:Invalid Register Provided")
+        raise ValueError(f"ERROR:Invalid Register Provided: {r}")
 
 def R_type(ins,rd,rs1,rs2):
         opcode="0110011"
@@ -112,10 +119,11 @@ def R_type(ins,rd,rs1,rs2):
         return code
 
 def I_type(ins, rd, rs, imm):
+    imm=int(imm)
     if (imm<-2048 or imm>2047):
-        return "Immediate out of range"
+        raise ValueError("Immediate out of range")
     s=''
-    imm=format(int(imm) & 0xFFF, '012b')
+    imm=format(imm & 0xFFF, '012b')
     rd=register(rd)
     rs=register(rs)
     s=s+imm
@@ -184,14 +192,6 @@ def B_type(ins,r1,r2,imm,currentpc):
         label_program_counter = int(labels[j][1], 16)
         offset = label_program_counter - currentpc
         imm = offset
-    try:
-        imm = int(imm)
-    except:
-        raise ValueError("ERROR: INVALID LABEL GIVEN")
-    if imm % 2 != 0:
-        raise ValueError("Branch offset must be multiple of 2")
-    if imm < -4096 or imm > 4094:
-        raise ValueError("Branch offset out of range")
     try:
         imm = int(imm)
     except:
