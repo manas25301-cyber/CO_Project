@@ -89,20 +89,19 @@ def main():
     f.close()          
 
 def register(r):
-    try:
-        reg=['zero','ra','sp','gp','tp','t0','t1','t2','s0','s1','a0','a1','a2','a3','a4','a5','a6','a7','s2','s3','s4','s5'
-            ,'s6','s7','s8','s9','s10','s11','t3','t4','t5','t6']
-        c=0
-        for i in range(32):
-            if reg[i]==r:
-                b=f'{i:05b}'
-                c=1
-                break
-        if r=='fp':
-            b='01000'
-        return b
-    except:
-        raise ValueError("ERROR:Invalid Register Provided")
+    reg = ['zero','ra','sp','gp','tp','t0','t1','t2','s0','s1',
+           'a0','a1','a2','a3','a4','a5','a6','a7',
+           's2','s3','s4','s5','s6','s7','s8','s9','s10','s11',
+           't3','t4','t5','t6']
+
+    if r == 'fp':
+        return '01000'
+
+    for i in range(32):
+        if reg[i] == r:
+            return f'{i:05b}'
+
+    raise ValueError(f"Invalid register provided: {r}")
 
 def R_type(ins,rd,rs1,rs2):
         opcode="0110011"
@@ -232,11 +231,9 @@ def U_Type(key,rd,imm):
     return(imm_20bit+rd_B+opcode)
 
 def J_Type(key,rd,offset):
-    offset=(offset)
+    offset=offset
     if offset % 2 != 0:
         raise ValueError("Offset must be 2-byte aligned")
-
-    offset=offset//2
 
     if offset<-(2**20) or offset>=(2**20):
         raise ValueError("Offset out of 21-bit range")
@@ -246,7 +243,6 @@ def J_Type(key,rd,offset):
 
     rd_B= register(rd)
     opcode="1101111"
-
     return(offset_20bit[0]+offset_20bit[10:20]+offset_20bit[9]+offset_20bit[1:9]+rd_B+opcode)
 
 main()
