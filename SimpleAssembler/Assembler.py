@@ -182,6 +182,8 @@ def B_type(ins,r1,r2,imm,currentpc):
     return code
 
 def U_Type(key,rd,imm):
+    if imm < -(2**19) or imm > (2**19)-1:
+        raise ValueError("U-type immediate out of 20-bit signed range")
     imm_20bit = format(imm & 0xFFFFF, '020b')
     rd_B= register(rd)
     if key=="lui":
