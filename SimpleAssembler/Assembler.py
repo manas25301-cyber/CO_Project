@@ -236,21 +236,5 @@ def J_Type(key,rd,offset):
     opcode="1101111"
 
     return(offset_20bit[0]+offset_20bit[10:20]+offset_20bit[9]+offset_20bit[1:9]+rd_B+opcode)
-    offset=(offset)
-    if offset % 2 != 0:
-        raise ValueError("Offset must be 2-byte aligned")
-
-    offset=offset//2
-
-    if offset<-(2**20) or offset>=(2**20):
-        raise ValueError("Offset out of 21-bit range")
-
-    imm = offset & 0x1FFFFF
-    offset_20bit = format(imm, '021b')
-
-    rd_B= register(rd)
-    opcode="1101111"
-
-    return(offset_20bit[0]+offset_20bit[10:20]+offset_20bit[9]+offset_20bit[1:9]+rd_B+opcode)
 
 main()
