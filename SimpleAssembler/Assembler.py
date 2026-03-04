@@ -1,13 +1,41 @@
 import sys
 
-input_file=sys.argv[1]
-output_file=sys.argv[2]
+input_file = sys.argv[1]
+output_file = sys.argv[2]
 
-PC=0
-cmd=[]
-labels=[]
+PC = 0
+cmd = []
+labels = []
 
 with open(input_file) as f:
+    tmp = []
+    x = f.read()
+    tmp = x.split("\n")
+    for i in tmp:
+        i=i.strip()
+        if i == "":
+            continue
+
+        if ":" in i:
+            label,instructions= i.split(":",1)
+            label = label.strip()
+            labels.append([label, format(PC, '08x')])
+            i = instructions.strip()
+            if i == "":
+                continue
+        ins,_,opp=i.partition(" ")
+        opp_array=[]
+        if opp:
+            opp_array=[x.strip() for x in opp.split(",")]
+        cmd.append([ins,opp_array,format(PC, '08x')])
+        PC += 4
+
+def is_hex(s):
+    try:
+        int(s, 16)
+        return 1
+    except ValueError:
+        return 0
     lines = f.readlines()
 
 for i in lines:
@@ -69,7 +97,10 @@ def main():
             s=B_type(exe[0],exe[1][0],exe[1][1],exe[1][2],exe[-1])    
 
         elif idx==4: #execute U-type
-            s=U_Type(exe[0], exe[1][0], exe[1][1])
+            if is_hex(exe[1][1])==1:
+                s=U_Type(exe[0], exe[1][0], int(exe[1][1],16))
+            else:
+                s=U_Type(exe[0], exe[1][0], exe[1][1])
             
         elif idx==5: #execute J-type
             currentpc = int(exe[-1], 16)
@@ -88,6 +119,19 @@ def main():
     f.close()          
 
 def register(r):
+    reg = ['zero','ra','sp','gp','tp','t0','t1','t2','s0','s1',
+           'a0','a1','a2','a3','a4','a5','a6','a7',
+           's2','s3','s4','s5','s6','s7','s8','s9','s10','s11',
+           't3','t4','t5','t6']
+
+    if r == 'fp':
+        return '01000'
+
+    for i in range(32):
+        if reg[i] == r:
+            return f'{i:05b}'
+
+    raise ValueError(f"Invalid register provided: {r}")
     try:
         reg=['zero','ra','sp','gp','tp','t0','t1','t2','s0','s1','a0','a1','a2','a3','a4','a5','a6','a7','s2','s3','s4','s5',
             's6','s7','s8','s9','s10','s11','t3','t4','t5','t6']
@@ -120,9 +164,12 @@ def R_type(ins,rd,rs1,rs2):
 
 def I_type(ins, rd, rs, imm):
     imm=int(imm)
+    imm=int(imm)
     if (imm<-2048 or imm>2047):
         raise ValueError("Immediate out of range")
     s=''
+    
+    imm=format(int(imm) & 0xFFF, '012b')
     imm=format(imm & 0xFFF, '012b')
     rd=register(rd)
     rs=register(rs)
@@ -220,11 +267,9 @@ def U_Type(key,rd,imm):
     return(imm_20bit+rd_B+opcode)
 
 def J_Type(key,rd,offset):
-    offset=(offset)
+    offset=offset
     if offset % 2 != 0:
         raise ValueError("Offset must be 2-byte aligned")
-
-    offset=offset//2
 
     if offset<-(2**20) or offset>=(2**20):
         raise ValueError("Offset out of 21-bit range")
@@ -234,23 +279,6 @@ def J_Type(key,rd,offset):
 
     rd_B= register(rd)
     opcode="1101111"
-
-    return(offset_20bit[0]+offset_20bit[10:20]+offset_20bit[9]+offset_20bit[1:9]+rd_B+opcode)
-    offset=(offset)
-    if offset % 2 != 0:
-        raise ValueError("Offset must be 2-byte aligned")
-
-    offset=offset//2
-
-    if offset<-(2**20) or offset>=(2**20):
-        raise ValueError("Offset out of 21-bit range")
-
-    imm = offset & 0x1FFFFF
-    offset_20bit = format(imm, '021b')
-
-    rd_B= register(rd)
-    opcode="1101111"
-
     return(offset_20bit[0]+offset_20bit[10:20]+offset_20bit[9]+offset_20bit[1:9]+rd_B+opcode)
 
 main()
