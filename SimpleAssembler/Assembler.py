@@ -40,6 +40,13 @@ def is_hex(s):
     except ValueError:
         return 0
 
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
 instr={"R":["add","sub","sll","slt","sltu","xor","srl","or","and"],"I":["lw","addi","sltiu","jalr"],"S":["sw"],"B":["beq","bne","blt","bge","bltu","bgeu"],"U":["lui","auipc"],"J":["jal"]}
 
 #exe->Each executable, format->[instruction, [rd, rs1, rs2], PC] (Nested List)
@@ -83,14 +90,17 @@ def main():
             
         elif idx==5: #execute J-type
             currentpc = int(exe[-1], 16)
-            for i in range(len(labels)):
-                if labels[i][0] == exe[1][1]:
-                    j = i
-                    break
-            label_program_counter = int(labels[j][1], 16)
-            offset = label_program_counter - currentpc
+            if is_number(exe[1][1]):
+                offset=int(exe[1][1])
+            else:
+                for i in range(len(labels)):
+                    if labels[i][0] == exe[1][1]:
+                        j = i
+                        break
+                label_program_counter = int(labels[j][1], 16)
+                offset = label_program_counter - currentpc
             s=J_Type(exe[0],exe[1][0],offset)
-            
+           
         else: #error:cmd not found
             s="ERROR"       
         f.write(s)
@@ -231,14 +241,16 @@ def U_Type(key,rd,imm):
     return(imm_20bit+rd_B+opcode)
 
 def J_Type(key,rd,offset):
-    offset=offset
     if offset % 2 != 0:
         raise ValueError("Offset must be 2-byte aligned")
 
-    if offset<-(2**20) or offset>=(2**20):
+    if offset< -(2**20) or offset >= (2**20):
         raise ValueError("Offset out of 21-bit range")
 
-    imm = offset & 0x1FFFFF
+    if offset < 0:
+        imm = (1 << 21) + offset
+    else:
+        imm = offset
     offset_20bit = format(imm, '021b')
 
     rd_B= register(rd)
