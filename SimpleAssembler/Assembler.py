@@ -19,6 +19,9 @@ with open(input_file) as f:
         if ":" in i:
             label,instructions= i.split(":",1)
             label = label.strip()
+            for i in labels:
+                if i[0] == label:
+                    raise ValueError(f"ERROR: SAME LABEL {label} DETECTED TWICE")
             labels.append([label, format(PC, '08x')])
             i = instructions.strip()
             if i == "":
@@ -228,7 +231,7 @@ def U_Type(key,rd,imm):
     return(imm_20bit+rd_B+opcode)
 
 def J_Type(key,rd,offset):
-    offset=offset
+    offset=offset//2
     if offset % 2 != 0:
         raise ValueError("Offset must be 2-byte aligned")
 
