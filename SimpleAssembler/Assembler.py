@@ -231,7 +231,7 @@ def U_Type(key,rd,imm):
     return(imm_20bit+rd_B+opcode)
 
 def J_Type(key,rd,offset):
-    offset=offset//2
+    offset=offset
     if offset % 2 != 0:
         raise ValueError("Offset must be 2-byte aligned")
 
