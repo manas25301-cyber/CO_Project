@@ -100,49 +100,67 @@ def main():
                     break
                 else:
                     idx+=1
-            try:
-                if idx==0: #execute R-type
-                    output_list.append(R_type(exe[0], exe[1][0], exe[1][1], exe[1][2]))
 
-                elif idx==1: #execute I-type
-                    if exe[0]=="lw":
+            if idx==0: #execute R-type
+                try:
+                    output_list.append(R_type(exe[0], exe[1][0], exe[1][1], exe[1][2]))
+                except:
+                    output_list.append("Error: Incorrect R-type syntax")
+            elif idx==1: #execute I-type
+                if exe[0]=="lw":
+                    try:
                         tmp=exe[1][1]
                         imm, rs = tmp.replace(")", "").split("(")
                         output_list.append(I_type(exe[0], exe[1][0], rs, imm))
-                    else:
+                    except:
+                        output_list.append("Error: Incorrect I-type syntax")
+                else:
+                    try:
                         output_list.append(I_type(exe[0], exe[1][0], exe[1][1], exe[1][2]))
+                    except:
+                        output_list.append("Error: Incorrect I-type syntax")
 
-                elif idx==2: #execute S-type
-                    output_list.append(S_Type(exe[0], exe[1][0], exe[1][1]))       
+            elif idx==2: #execute S-type
+                try:
+                    output_list.append(S_Type(exe[0], exe[1][0], exe[1][1])) 
+                except:
+                    output_list.append("Error: Incorrect S-type syntax")      
 
-                elif idx==3: #execute B-type
+            elif idx==3: #execute B-type
+                try:
                     output_list.append(B_type(exe[0],exe[1][0],exe[1][1],exe[1][2],exe[-1]))    
+                except:
+                    output_list.append("Error: Incorrect B-type syntax")
 
-                elif idx==4: #execute U-type
+            elif idx==4: #execute U-type
+                try:
                     output_list.append(U_Type(exe[0], exe[1][0], exe[1][1]))   
-                
-                elif idx==5: #execute J-type
-                    j=-1
-                    currentpc = int(exe[-1], 16)
-                    if is_number(exe[1][1]):
-                        j=0
-                        offset=int(exe[1][1])
-                    else:
-                        for i in range(len(labels)):
-                            if labels[i][0] == exe[1][1]:
-                                j = i
-                                break
-                        label_program_counter = int(labels[j][1], 16)
-                        offset = label_program_counter - currentpc
-                    if j!=-1:
+                except:
+                    output_list.append("Error: Incorrect U-type syntax")
+            elif idx==5: #execute J-type
+                j=-1
+                currentpc = int(exe[-1], 16)
+                if is_number(exe[1][1]):
+                    j=0
+                    offset=int(exe[1][1])
+                else:
+                    for i in range(len(labels)):
+                        if labels[i][0] == exe[1][1]:
+                            j = i
+                            break
+                    label_program_counter = int(labels[j][1], 16)
+                    offset = label_program_counter - currentpc
+                if j!=-1:
+                    try:
                         output_list.append(J_Type(exe[0],exe[1][0],offset))
-                    else:
-                        output_list.append("Error: Label not defined")
-                
-                else: #error:cmd not found
-                    output_list.append("Error: Instruction not found")       
-            except:
-                output_list.append("Error: format not correct")
+                    except:
+                        output_list.append("Error: Incorrect I-type syntax")
+                else:
+                    output_list.append("Error: Label not defined")
+            
+            else: #error:cmd not found
+                output_list.append("Error: Invalid instruction provided")       
+            
         f=open(output_file, 'a')
         s=''
         count=0
