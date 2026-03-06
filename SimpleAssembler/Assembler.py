@@ -7,6 +7,8 @@ PC = 0
 cmd = []
 labels = []
 
+output_list=[]
+
 with open(input_file) as f:
     tmp = []
     x = f.read()
@@ -21,7 +23,7 @@ with open(input_file) as f:
             label = label.strip()
             for i in labels:
                 if i[0] == label:
-                    raise ValueError(f"ERROR: SAME LABEL {label} DETECTED TWICE")
+                    output_list.append(f"ERROR: SAME LABEL ({label}) DETECTED TWICE")
             labels.append([label, format(PC, '08x')])
             i = instructions.strip()
             if i == "":
@@ -71,6 +73,8 @@ def virtual_halt():
                 return
             else:
                 output_list.append("ERROR: VALID PROGRAM HALT MISSING")
+        else:
+            output_list.append("ERROR: VALID PROGRAM HALT MISSING")
     elif ins =="beq":
         if registers[0] in reg and registers[1] in reg:
             if (registers[0]==registers[1]) and registers[2]=="0":
@@ -79,60 +83,82 @@ def virtual_halt():
                 return
             else:
                 output_list.append("ERROR: VALID PROGRAM HALT MISSING")
+        else:
+            output_list.append("ERROR: VALID PROGRAM HALT MISSING")
     else:
         output_list.append("ERROR: VALID PROGRAM HALT MISSING")
 virtual_halt()
 
 
+
 def main():
-    f=open(output_file, 'a')
-    s=''
-    for exe in cmd:
-        idx=0
-        for chk in list(instr.values()): #Checks Each List of the dictionary
-            if exe[0] in chk:
-                break
-            else:
-                idx+=1
+    if len(output_list)==0:
+        for exe in cmd:
+            idx=0
+            for chk in list(instr.values()): #Checks Each List of the dictionary
+                if exe[0] in chk:
+                    break
+                else:
+                    idx+=1
 
-        if idx==0: #execute R-type
-            s=R_type(exe[0], exe[1][0], exe[1][1], exe[1][2])
+            if idx==0: #execute R-type
+                output_list.append(R_type(exe[0], exe[1][0], exe[1][1], exe[1][2]))
 
-        elif idx==1: #execute I-type
-            if exe[0]=="lw":
-                tmp=exe[1][1]
-                imm, rs = tmp.replace(")", "").split("(")
-                s=I_type(exe[0], exe[1][0], rs, imm)
-            else:
-                s=I_type(exe[0], exe[1][0], exe[1][1], exe[1][2])
+            elif idx==1: #execute I-type
+                if exe[0]=="lw":
+                    tmp=exe[1][1]
+                    imm, rs = tmp.replace(")", "").split("(")
+                    output_list.append(I_type(exe[0], exe[1][0], rs, imm))
+                else:
+                    output_list.append(I_type(exe[0], exe[1][0], exe[1][1], exe[1][2]))
 
-        elif idx==2: #execute S-type
-            s=S_Type(exe[0], exe[1][0], exe[1][1])       
+            elif idx==2: #execute S-type
+                output_list.append(S_Type(exe[0], exe[1][0], exe[1][1]))       
 
-        elif idx==3: #execute B-type
-            s=B_type(exe[0],exe[1][0],exe[1][1],exe[1][2],exe[-1])    
+            elif idx==3: #execute B-type
+                output_list.append(B_type(exe[0],exe[1][0],exe[1][1],exe[1][2],exe[-1]))    
 
-        elif idx==4: #execute U-type
-            s=U_Type(exe[0], exe[1][0], exe[1][1])   
+            elif idx==4: #execute U-type
+                output_list.append(U_Type(exe[0], exe[1][0], exe[1][1]))   
+            
+            elif idx==5: #execute J-type
+                currentpc = int(exe[-1], 16)
+                if is_number(exe[1][1]):
+                    offset=int(exe[1][1])
+                else:
+                    for i in range(len(labels)):
+                        if labels[i][0] == exe[1][1]:
+                            j = i
+                            break
+                    label_program_counter = int(labels[j][1], 16)
+                    offset = label_program_counter - currentpc
+                output_list.append(J_Type(exe[0],exe[1][0],offset))
+            
+            else: #error:cmd not found
+                output_list.append("Error: Instruction not found")       
+
+        f=open(output_file, 'a')
+        s=''
+        count=0
+        for i in range(0,len(cmd)):
+            if is_number(output_list[i])==0:
+                s=f"Line {i+1} "+output_list[i]
+                count+=1
+                f.write(s)
+                f.write("\n")
         
-        elif idx==5: #execute J-type
-            currentpc = int(exe[-1], 16)
-            if is_number(exe[1][1]):
-                offset=int(exe[1][1])
-            else:
-                for i in range(len(labels)):
-                    if labels[i][0] == exe[1][1]:
-                        j = i
-                        break
-                label_program_counter = int(labels[j][1], 16)
-                offset = label_program_counter - currentpc
-            s=J_Type(exe[0],exe[1][0],offset)
-           
-        else: #error:cmd not found
-            s="ERROR"       
+        if count==0:
+            for i in range(0,len(cmd)):
+                s=output_list[i]
+                f.write(s)
+                f.write("\n")
+        f.close()
+    else:
+        f=open(output_file, 'a')
+        s=output_list[0]
         f.write(s)
         f.write("\n")
-    f.close()          
+        f.close()
 
 def register(r):
     reg = ['zero','ra','sp','gp','tp','t0','t1','t2','s0','s1',
@@ -147,7 +173,7 @@ def register(r):
         if reg[i] == r:
             return f'{i:05b}'
 
-    raise ValueError(f"Invalid register provided: {r}")
+    return f"ERROR: Invalid register provided: {r}"
 
 def R_type(ins,rd,rs1,rs2):
         opcode="0110011"
@@ -163,18 +189,13 @@ def R_type(ins,rd,rs1,rs2):
                 code= func7[i] + rs2 + rs1 + func3[i] + rd + opcode
                 break
         else:
-            code="error"
+            code="ERROR: Invalid R-type instruction"
         return code
 
 def I_type(ins, rd, rs, imm):
-    if is_number(imm):
-        imm=int(imm)
-    elif is_hex(imm):
-        imm=int(imm,16)
-    else:
-        raise ValueError("Invalid immediate")
+    imm=int(imm)
     if (imm<-2048 or imm>2047):
-        raise ValueError("Immediate out of range")
+        return "ERROR: I-type immediate out of 12-bit signed range (-2048 to 2047)"
     s=''
     imm=format(imm & 0xFFF, '012b')
     rd=register(rd)
@@ -189,16 +210,14 @@ def I_type(ins, rd, rs, imm):
     elif ins=="jalr":
         s=s+rs+"000"+rd+"1100111"
     else:
-        s="error"
+        s="ERROR: Invalid I-type instruction"
     return s
 
 def S_Type(key, rs2, s):
     val = int(s[:s.index("(")])
     rs1 = s[s.index("(")+1 : -1]
     if val < -2048 or val > 2047:
-        raise ValueError("S-type immediate out of 12-bit signed range (-2048 to 2047)")
-    if val < -2048 or val > 2047:
-        raise ValueError("S-type immediate out of 12-bit signed range (-2048 to 2047)")
+        return "ERROR: S-type immediate out of 12-bit signed range (-2048 to 2047)"
     val_12bit = format(val & 0xFFF, '012b')
 
     rs2_B = register(rs2)
@@ -213,7 +232,7 @@ def S_Type(key, rs2, s):
     elif key == "sw":
         funct3 = "010"
     else:
-        raise ValueError("Invalid S-type instruction")
+        return "ERROR: Invalid S-type instruction"
 
     return (val_12bit[0:7] + rs2_B + rs1_B + funct3 +
             val_12bit[7:] + opcode)
@@ -248,11 +267,11 @@ def B_type(ins,r1,r2,imm,currentpc):
     try:
         imm = int(imm)
     except:
-        raise ValueError("ERROR: INVALID LABEL GIVEN")
+        return "ERROR: INVALID LABEL GIVEN"
     if imm % 2 != 0:
-        raise ValueError("Branch offset must be multiple of 2")
+        return "ERROR: Branch offset must be multiple of 2"
     if imm < -4096 or imm > 4094:
-        raise ValueError("Branch offset out of range")
+        return "ERROR: Branch offset out of range"
     imm = imm // 2
     immcode = format(imm & 0xFFF, '012b')
     code = immcode[0] + immcode[2:8] + r2_ + r1_ + func3 + immcode[8:] + immcode[1] + opcode
@@ -262,8 +281,7 @@ def U_Type(key,rd,imm):
     imm=int(imm)
     imm = imm >> 12
     if imm < -(2**19) or imm > (2**19)-1:
-        raise ValueError("U-type immediate out of 20-bit range")
-
+        return "ERROR: U-type immediate out of 20-bit signed range"
     imm_20bit = format(imm & 0xFFFFF, '020b')
     rd_B= register(rd)
     if key=="lui":
@@ -274,10 +292,10 @@ def U_Type(key,rd,imm):
 
 def J_Type(key,rd,offset):
     if offset % 2 != 0:
-        raise ValueError("Offset must be 2-byte aligned")
+        return "ERROR: Offset must be 2-byte aligned"
 
     if offset< -(2**20) or offset >= (2**20):
-        raise ValueError("Offset out of 21-bit range")
+        return "ERROR: Offset out of 21-bit range"
 
     if offset < 0:
         imm = (1 << 21) + offset
