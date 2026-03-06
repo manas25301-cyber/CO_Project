@@ -1,37 +1,41 @@
 import sys
 
-input_file=sys.argv[1]
-output_file=sys.argv[2]
+input_file = sys.argv[1]
+output_file = sys.argv[2]
 
-PC=0
-cmd=[]
-labels=[]
+PC = 0
+cmd = []
+labels = []
 
 with open(input_file) as f:
-    lines = f.readlines()
-
-for i in lines:
-    i = i.strip()
-    if i == "":
-        continue
-
-    if ":" in i:
-        label, i = i.split(":", 1)
-        label = label.strip()
-        labels.append([label, format(PC, '08x')])
-        i = i.strip()
-
+    tmp = []
+    x = f.read()
+    tmp = x.split("\n")
+    for i in tmp:
+        i=i.strip()
         if i == "":
-            continue  # label-only line
+            continue
 
-    ins, _, opp = i.partition(" ")
+        if ":" in i:
+            label,instructions= i.split(":",1)
+            label = label.strip()
+            labels.append([label, format(PC, '08x')])
+            i = instructions.strip()
+            if i == "":
+                continue
+        ins,_,opp=i.partition(" ")
+        opp_array=[]
+        if opp:
+            opp_array=[x.strip() for x in opp.split(",")]
+        cmd.append([ins,opp_array,format(PC, '08x')])
+        PC += 4
 
-    opp_array = []
-    if opp:
-        opp_array = [x.strip() for x in opp.split(",")]
-
-    cmd.append([ins, opp_array, format(PC, '08x')])
-    PC += 4
+def is_hex(s):
+    try:
+        int(s, 16)
+        return 1
+    except ValueError:
+        return 0
 
 instr={"R":["add","sub","sll","slt","sltu","xor","srl","or","and"],"I":["lw","addi","sltiu","jalr"],"S":["sw"],"B":["beq","bne","blt","bge","bltu","bgeu"],"U":["lui","auipc"],"J":["jal"]}
 
@@ -41,7 +45,6 @@ f=open(output_file, 'w')
 f.close() #Makes sure output file is empty
 
 def main():
-    f=open(output_file, 'a')
     s=''
     for exe in cmd:
         idx=0
@@ -69,7 +72,10 @@ def main():
             s=B_type(exe[0],exe[1][0],exe[1][1],exe[1][2],exe[-1])    
 
         elif idx==4: #execute U-type
-            s=U_Type(exe[0], exe[1][0], exe[1][1])
+            if is_hex(exe[1][1])==1:
+                s=U_Type(exe[0], exe[1][0], int(exe[1][1],16))
+            else:
+                s=U_Type(exe[0], exe[1][0], exe[1][1])
             
         elif idx==5: #execute J-type
             currentpc = int(exe[-1], 16)
@@ -82,24 +88,22 @@ def main():
             s=J_Type(exe[0],exe[1][0],offset)
             
         else: #error:cmd not found
-            s="ERROR"       
-        f.write(s)
-        f.write("\n")
-    f.close()          
+            s="ERROR: Instruction not found"               
 
 def register(r):
-    try:
-        reg=['zero','ra','sp','gp','tp','t0','t1','t2','s0','s1','a0','a1','a2','a3','a4','a5','a6','a7','s2','s3','s4','s5',
-            's6','s7','s8','s9','s10','s11','t3','t4','t5','t6']
-        for i in range(32):
-            if reg[i]==r:
-                b=f'{i:05b}'
-                break
-        if r=='fp':
-            b='01000'
-        return b
-    except:
-        raise ValueError(f"ERROR:Invalid Register Provided: {r}")
+    reg = ['zero','ra','sp','gp','tp','t0','t1','t2','s0','s1',
+           'a0','a1','a2','a3','a4','a5','a6','a7',
+           's2','s3','s4','s5','s6','s7','s8','s9','s10','s11',
+           't3','t4','t5','t6']
+
+    if r == 'fp':
+        return '01000'
+
+    for i in range(32):
+        if reg[i] == r:
+            return f'{i:05b}'
+
+    return f"ERROR: Invalid register provided: {r}"
 
 def R_type(ins,rd,rs1,rs2):
         opcode="0110011"
@@ -115,13 +119,13 @@ def R_type(ins,rd,rs1,rs2):
                 code= func7[i] + rs2 + rs1 + func3[i] + rd + opcode
                 break
         else:
-            code="error"
+            code="ERROR: Invalid R-type instruction"
         return code
 
 def I_type(ins, rd, rs, imm):
     imm=int(imm)
     if (imm<-2048 or imm>2047):
-        raise ValueError("Immediate out of range")
+        return "ERROR: I-type immediate out of 12-bit signed range (-2048 to 2047)"
     s=''
     imm=format(imm & 0xFFF, '012b')
     rd=register(rd)
@@ -136,16 +140,14 @@ def I_type(ins, rd, rs, imm):
     elif ins=="jalr":
         s=s+rs+"000"+rd+"1100111"
     else:
-        s="error"
+        s="ERROR: Invalid I-type instruction"
     return s
 
 def S_Type(key, rs2, s):
     val = int(s[:s.index("(")])
     rs1 = s[s.index("(")+1 : -1]
     if val < -2048 or val > 2047:
-        raise ValueError("S-type immediate out of 12-bit signed range (-2048 to 2047)")
-    if val < -2048 or val > 2047:
-        raise ValueError("S-type immediate out of 12-bit signed range (-2048 to 2047)")
+        return "ERROR: S-type immediate out of 12-bit signed range (-2048 to 2047)"
     val_12bit = format(val & 0xFFF, '012b')
 
     rs2_B = register(rs2)
@@ -160,7 +162,7 @@ def S_Type(key, rs2, s):
     elif key == "sw":
         funct3 = "010"
     else:
-        raise ValueError("Invalid S-type instruction")
+        return "ERROR: Invalid S-type instruction"
 
     return (val_12bit[0:7] + rs2_B + rs1_B + funct3 +
             val_12bit[7:] + opcode)
@@ -195,11 +197,11 @@ def B_type(ins,r1,r2,imm,currentpc):
     try:
         imm = int(imm)
     except:
-        raise ValueError("ERROR: INVALID LABEL GIVEN")
+        return "ERROR: INVALID LABEL GIVEN"
     if imm % 2 != 0:
-        raise ValueError("Branch offset must be multiple of 2")
+        return "ERROR: Branch offset must be multiple of 2"
     if imm < -4096 or imm > 4094:
-        raise ValueError("Branch offset out of range")
+        return "ERROR: Branch offset out of range"
     imm = imm // 2
     immcode = format(imm & 0xFFF, '012b')
     code = immcode[0] + immcode[2:8] + r2_ + r1_ + func3 + immcode[8:] + immcode[1] + opcode
@@ -207,9 +209,7 @@ def B_type(ins,r1,r2,imm,currentpc):
 
 def U_Type(key,rd,imm):
     if imm < -(2**19) or imm > (2**19)-1:
-        raise ValueError("U-type immediate out of 20-bit signed range")
-    if imm < -(2**19) or imm > (2**19)-1:
-        raise ValueError("U-type immediate out of 20-bit signed range")
+        return "ERROR: U-type immediate out of 20-bit signed range"
     imm_20bit = format(imm & 0xFFFFF, '020b')
     rd_B= register(rd)
     if key=="lui":
@@ -220,21 +220,18 @@ def U_Type(key,rd,imm):
     return(imm_20bit+rd_B+opcode)
 
 def J_Type(key,rd,offset):
-    offset=(offset)
+    offset=offset
     if offset % 2 != 0:
-        raise ValueError("Offset must be 2-byte aligned")
-
-    offset=offset//2
+        return "ERROR: Offset must be 2-byte aligned"
 
     if offset<-(2**20) or offset>=(2**20):
-        raise ValueError("Offset out of 21-bit range")
+        return "ERROR: Offset out of 21-bit range"
 
     imm = offset & 0x1FFFFF
     offset_20bit = format(imm, '021b')
 
     rd_B= register(rd)
     opcode="1101111"
-
     return(offset_20bit[0]+offset_20bit[10:20]+offset_20bit[9]+offset_20bit[1:9]+rd_B+opcode)
 
 main()
