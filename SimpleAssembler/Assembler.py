@@ -54,6 +54,36 @@ instr={"R":["add","sub","sll","slt","sltu","xor","srl","or","and"],"I":["lw","ad
 f=open(output_file, 'w')
 f.close() #Makes sure output file is empty
 
+def virtual_halt():
+    x = cmd[-1]
+    ins = x[0]
+    registers = x[1]
+    current_pc = x[-1]
+    reg = ['zero', 'ra', 'sp', 'gp', 'tp', 't0', 't1', 't2', 's0', 's1',
+           'a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7',
+           's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11',
+           't3', 't4', 't5', 't6']
+    if ins =="jal":
+        if registers[0] in reg:
+            if registers[1]=="0":
+                return
+            elif (registers[1]==labels[-1][0]) and (current_pc==labels[-1][1]):
+                return
+            else:
+                output_list.append("ERROR: VALID PROGRAM HALT MISSING")
+    elif ins =="beq":
+        if registers[0] in reg and registers[1] in reg:
+            if (registers[0]==registers[1]) and registers[2]=="0":
+                return
+            elif (registers[2]==labels[-1][0]) and (current_pc==labels[-1][1]):
+                return
+            else:
+                output_list.append("ERROR: VALID PROGRAM HALT MISSING")
+    else:
+        output_list.append("ERROR: VALID PROGRAM HALT MISSING")
+virtual_halt()
+
+
 def main():
     f=open(output_file, 'a')
     s=''
