@@ -73,6 +73,8 @@ def virtual_halt():
                 return
             else:
                 output_list.append("ERROR: VALID PROGRAM HALT MISSING")
+        else:
+            output_list.append("ERROR: VALID PROGRAM HALT MISSING")
     elif ins =="beq":
         if registers[0] in reg and registers[1] in reg:
             if (registers[0]==registers[1]) and registers[2]=="0":
@@ -81,6 +83,8 @@ def virtual_halt():
                 return
             else:
                 output_list.append("ERROR: VALID PROGRAM HALT MISSING")
+        else:
+            output_list.append("ERROR: VALID PROGRAM HALT MISSING")
     else:
         output_list.append("ERROR: VALID PROGRAM HALT MISSING")
 virtual_halt()
