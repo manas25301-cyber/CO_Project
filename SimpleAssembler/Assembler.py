@@ -109,7 +109,7 @@ def main():
         count=0
         for i in range(0,len(cmd)):
             if is_number(output_list[i])==0:
-                s=f"Line {i} "+output_list[i]
+                s=f"Line {i+1} "+output_list[i]
                 count+=1
                 f.write(s)
                 f.write("\n")
