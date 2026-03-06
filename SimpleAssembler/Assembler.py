@@ -1,4 +1,4 @@
-import sys
+importimport sys
 
 input_file = sys.argv[1]
 output_file = sys.argv[2]
@@ -6,6 +6,8 @@ output_file = sys.argv[2]
 PC = 0
 cmd = []
 labels = []
+
+output_list=[]
 
 with open(input_file) as f:
     tmp = []
@@ -19,6 +21,9 @@ with open(input_file) as f:
         if ":" in i:
             label,instructions= i.split(":",1)
             label = label.strip()
+            for i in labels:
+                if i[0] == label:
+                    output_list.append(f"ERROR: SAME LABEL ({label}) DETECTED TWICE")
             labels.append([label, format(PC, '08x')])
             i = instructions.strip()
             if i == "":
@@ -51,69 +56,76 @@ instr={"R":["add","sub","sll","slt","sltu","xor","srl","or","and"],"I":["lw","ad
 f=open(output_file, 'w')
 f.close() #Makes sure output file is empty
 
-output_list=[]
+
 
 def main():
-    for exe in cmd:
-        idx=0
-        for chk in list(instr.values()): #Checks Each List of the dictionary
-            if exe[0] in chk:
-                break
-            else:
-                idx+=1
+    if len(output_list)==0:
+        for exe in cmd:
+            idx=0
+            for chk in list(instr.values()): #Checks Each List of the dictionary
+                if exe[0] in chk:
+                    break
+                else:
+                    idx+=1
 
-        if idx==0: #execute R-type
-            output_list.append(R_type(exe[0], exe[1][0], exe[1][1], exe[1][2]))
+            if idx==0: #execute R-type
+                output_list.append(R_type(exe[0], exe[1][0], exe[1][1], exe[1][2]))
 
-        elif idx==1: #execute I-type
-            if exe[0]=="lw":
-                tmp=exe[1][1]
-                imm, rs = tmp.replace(")", "").split("(")
-                output_list.append(I_type(exe[0], exe[1][0], rs, imm))
-            else:
-                output_list.append(I_type(exe[0], exe[1][0], exe[1][1], exe[1][2]))
+            elif idx==1: #execute I-type
+                if exe[0]=="lw":
+                    tmp=exe[1][1]
+                    imm, rs = tmp.replace(")", "").split("(")
+                    output_list.append(I_type(exe[0], exe[1][0], rs, imm))
+                else:
+                    output_list.append(I_type(exe[0], exe[1][0], exe[1][1], exe[1][2]))
 
-        elif idx==2: #execute S-type
-            output_list.append(S_Type(exe[0], exe[1][0], exe[1][1]))       
+            elif idx==2: #execute S-type
+                output_list.append(S_Type(exe[0], exe[1][0], exe[1][1]))       
 
-        elif idx==3: #execute B-type
-            output_list.append(B_type(exe[0],exe[1][0],exe[1][1],exe[1][2],exe[-1]))    
+            elif idx==3: #execute B-type
+                output_list.append(B_type(exe[0],exe[1][0],exe[1][1],exe[1][2],exe[-1]))    
 
-        elif idx==4: #execute U-type
-            output_list.append(U_Type(exe[0], exe[1][0], exe[1][1]))   
-        
-        elif idx==5: #execute J-type
-            currentpc = int(exe[-1], 16)
-            if is_number(exe[1][1]):
-                offset=int(exe[1][1])
-            else:
-                for i in range(len(labels)):
-                    if labels[i][0] == exe[1][1]:
-                        j = i
-                        break
-                label_program_counter = int(labels[j][1], 16)
-                offset = label_program_counter - currentpc
-            output_list.append(J_Type(exe[0],exe[1][0],offset))
-           
-        else: #error:cmd not found
-            output_list.append("Error: Instruction not found")       
+            elif idx==4: #execute U-type
+                output_list.append(U_Type(exe[0], exe[1][0], exe[1][1]))   
+            
+            elif idx==5: #execute J-type
+                currentpc = int(exe[-1], 16)
+                if is_number(exe[1][1]):
+                    offset=int(exe[1][1])
+                else:
+                    for i in range(len(labels)):
+                        if labels[i][0] == exe[1][1]:
+                            j = i
+                            break
+                    label_program_counter = int(labels[j][1], 16)
+                    offset = label_program_counter - currentpc
+                output_list.append(J_Type(exe[0],exe[1][0],offset))
+            
+            else: #error:cmd not found
+                output_list.append("Error: Instruction not found")       
 
-    f=open(output_file, 'a')
-    s=''
-    count=0
-    for i in range(0,len(cmd)):
-        if is_number(output_list[i])==0:
-            s=f"Line {i} "+output_list[i]
-            count+=1
-            f.write(s)
-            f.write("\n")
-    
-    if count==0:
+        f=open(output_file, 'a')
+        s=''
+        count=0
         for i in range(0,len(cmd)):
-            s=output_list[i]
-            f.write(s)
-            f.write("\n")
-    f.close()
+            if is_number(output_list[i])==0:
+                s=f"Line {i} "+output_list[i]
+                count+=1
+                f.write(s)
+                f.write("\n")
+        
+        if count==0:
+            for i in range(0,len(cmd)):
+                s=output_list[i]
+                f.write(s)
+                f.write("\n")
+        f.close()
+    else:
+        f=open(output_file, 'a')
+        s=output_list[0]
+        f.write(s)
+        f.write("\n")
+        f.close()
 
 def register(r):
     reg = ['zero','ra','sp','gp','tp','t0','t1','t2','s0','s1',
