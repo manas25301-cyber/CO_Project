@@ -182,29 +182,29 @@ def register(r):
     return f"ERROR: Invalid register provided: {r}"
 
 def R_type(ins,rd,rs1,rs2):
-        opcode="0110011"
-        rd=register(rd)
-        rs1=register(rs1)
-        rs2=register(rs2)
-        
-        func3= ["000","000","001","010","011","100","101","110","111"]
-        func7=["0000000","0100000","0000000","0000000","0000000","0000000","0000000","0000000","0000000"]
-        inst=["add","sub","sll","slt","sltu","xor","srl","or","and"]
-        if is_number(rd)==0:
-            return rd
-        if is_number(rs1)==0:
-            return rs1
-        if is_number(rs2)==0:
-            return rs2            
-        for i in range(9):
-            if inst[i]==ins:
-                code= func7[i] + rs2 + rs1 + func3[i] + rd + opcode
-                break
-        else:
-            code="ERROR: Invalid R-type instruction"
-        
+    opcode="0110011"
+    rd=register(rd)
+    rs1=register(rs1)
+    rs2=register(rs2)
+    
+    func3= ["000","000","001","010","011","100","101","110","111"]
+    func7=["0000000","0100000","0000000","0000000","0000000","0000000","0000000","0000000","0000000"]
+    inst=["add","sub","sll","slt","sltu","xor","srl","or","and"]
+    if is_number(rd)==0:
+        return rd
+    if is_number(rs1)==0:
+        return rs1
+    if is_number(rs2)==0:
+        return rs2            
+    for i in range(9):
+        if inst[i]==ins:
+            code= func7[i] + rs2 + rs1 + func3[i] + rd + opcode
+            break
+    else:
+        code="ERROR: Invalid R-type instruction"
+    
 
-        return code
+    return code
 
 def I_type(ins, rd, rs, imm):
     imm=int(imm)
