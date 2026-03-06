@@ -83,11 +83,8 @@ def main():
             s=B_type(exe[0],exe[1][0],exe[1][1],exe[1][2],exe[-1])    
 
         elif idx==4: #execute U-type
-            if is_hex(exe[1][1])==1:
-                s=U_Type(exe[0], exe[1][0], int(exe[1][1],16))
-            else:
-                s=U_Type(exe[0], exe[1][0], exe[1][1])
-            
+            s=U_Type(exe[0], exe[1][0], exe[1][1])   
+        
         elif idx==5: #execute J-type
             currentpc = int(exe[-1], 16)
             if is_number(exe[1][1]):
@@ -140,7 +137,12 @@ def R_type(ins,rd,rs1,rs2):
         return code
 
 def I_type(ins, rd, rs, imm):
-    imm=int(imm)
+    if is_number(imm):
+        imm=int(imm)
+    elif is_hex(imm):
+        imm=int(imm,16)
+    else:
+        raise ValueError("Invalid immediate")
     if (imm<-2048 or imm>2047):
         raise ValueError("Immediate out of range")
     s=''
@@ -227,17 +229,17 @@ def B_type(ins,r1,r2,imm,currentpc):
     return code
 
 def U_Type(key,rd,imm):
+    imm=int(imm)
+    imm = imm >> 12
     if imm < -(2**19) or imm > (2**19)-1:
-        raise ValueError("U-type immediate out of 20-bit signed range")
-    if imm < -(2**19) or imm > (2**19)-1:
-        raise ValueError("U-type immediate out of 20-bit signed range")
+        raise ValueError("U-type immediate out of 20-bit range")
+
     imm_20bit = format(imm & 0xFFFFF, '020b')
     rd_B= register(rd)
     if key=="lui":
         opcode="0110111"
     elif key=="auipc":
         opcode="0010111"
-
     return(imm_20bit+rd_B+opcode)
 
 def J_Type(key,rd,offset):
