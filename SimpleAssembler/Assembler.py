@@ -102,28 +102,46 @@ def main():
                     idx+=1
 
             if idx==0: #execute R-type
-                output_list.append(R_type(exe[0], exe[1][0], exe[1][1], exe[1][2]))
-
+                try:
+                    output_list.append(R_type(exe[0], exe[1][0], exe[1][1], exe[1][2]))
+                except:
+                    output_list.append("Error: Incorrect R-type syntax")
             elif idx==1: #execute I-type
                 if exe[0]=="lw":
-                    tmp=exe[1][1]
-                    imm, rs = tmp.replace(")", "").split("(")
-                    output_list.append(I_type(exe[0], exe[1][0], rs, imm))
+                    try:
+                        tmp=exe[1][1]
+                        imm, rs = tmp.replace(")", "").split("(")
+                        output_list.append(I_type(exe[0], exe[1][0], rs, imm))
+                    except:
+                        output_list.append("Error: Incorrect I-type syntax")
                 else:
-                    output_list.append(I_type(exe[0], exe[1][0], exe[1][1], exe[1][2]))
+                    try:
+                        output_list.append(I_type(exe[0], exe[1][0], exe[1][1], exe[1][2]))
+                    except:
+                        output_list.append("Error: Incorrect I-type syntax")
 
             elif idx==2: #execute S-type
-                output_list.append(S_Type(exe[0], exe[1][0], exe[1][1]))       
+                try:
+                    output_list.append(S_Type(exe[0], exe[1][0], exe[1][1])) 
+                except:
+                    output_list.append("Error: Incorrect S-type syntax")      
 
             elif idx==3: #execute B-type
-                output_list.append(B_type(exe[0],exe[1][0],exe[1][1],exe[1][2],exe[-1]))    
+                try:
+                    output_list.append(B_type(exe[0],exe[1][0],exe[1][1],exe[1][2],exe[-1]))    
+                except:
+                    output_list.append("Error: Incorrect B-type syntax")
 
             elif idx==4: #execute U-type
-                output_list.append(U_Type(exe[0], exe[1][0], exe[1][1]))   
-            
+                try:
+                    output_list.append(U_Type(exe[0], exe[1][0], exe[1][1]))   
+                except:
+                    output_list.append("Error: Incorrect U-type syntax")
             elif idx==5: #execute J-type
+                j=-1
                 currentpc = int(exe[-1], 16)
                 if is_number(exe[1][1]):
+                    j=0
                     offset=int(exe[1][1])
                 else:
                     for i in range(len(labels)):
@@ -132,11 +150,17 @@ def main():
                             break
                     label_program_counter = int(labels[j][1], 16)
                     offset = label_program_counter - currentpc
-                output_list.append(J_Type(exe[0],exe[1][0],offset))
+                if j!=-1:
+                    try:
+                        output_list.append(J_Type(exe[0],exe[1][0],offset))
+                    except:
+                        output_list.append("Error: Incorrect I-type syntax")
+                else:
+                    output_list.append("Error: Label not defined")
             
             else: #error:cmd not found
-                output_list.append("Error: Instruction not found")       
-
+                output_list.append("Error: Invalid instruction provided")       
+            
         f=open(output_file, 'a')
         s=''
         count=0
@@ -176,21 +200,29 @@ def register(r):
     return f"ERROR: Invalid register provided: {r}"
 
 def R_type(ins,rd,rs1,rs2):
-        opcode="0110011"
-        rd=register(rd)
-        rs1=register(rs1)
-        rs2=register(rs2)
-        func3= ["000","000","001","010","011","100","101","110","111"]
-        func7=["0000000","0100000","0000000","0000000","0000000","0000000","0000000","0000000","0000000"]
-        inst=["add","sub","sll","slt","sltu","xor","srl","or","and"]
+    opcode="0110011"
+    rd=register(rd)
+    rs1=register(rs1)
+    rs2=register(rs2)
+    
+    func3= ["000","000","001","010","011","100","101","110","111"]
+    func7=["0000000","0100000","0000000","0000000","0000000","0000000","0000000","0000000","0000000"]
+    inst=["add","sub","sll","slt","sltu","xor","srl","or","and"]
+    if is_number(rd)==0:
+        return rd
+    if is_number(rs1)==0:
+        return rs1
+    if is_number(rs2)==0:
+        return rs2            
+    for i in range(9):
+        if inst[i]==ins:
+            code= func7[i] + rs2 + rs1 + func3[i] + rd + opcode
+            break
+    else:
+        code="ERROR: Invalid R-type instruction"
+    
 
-        for i in range(9):
-            if inst[i]==ins:
-                code= func7[i] + rs2 + rs1 + func3[i] + rd + opcode
-                break
-        else:
-            code="ERROR: Invalid R-type instruction"
-        return code
+    return code
 
 def I_type(ins, rd, rs, imm):
     imm=int(imm)
@@ -201,6 +233,11 @@ def I_type(ins, rd, rs, imm):
     rd=register(rd)
     rs=register(rs)
     s=s+imm
+    if is_number(rd)==0:
+            return rd
+    if is_number(rs)==0:
+        return rs
+
     if ins=="lw":
         s=s+rs+"010"+rd+"0000011"
     elif ins=="addi":
@@ -223,6 +260,10 @@ def S_Type(key, rs2, s):
     rs2_B = register(rs2)
     rs1_B = register(rs1)
 
+    if is_number(rs1_B)==0:
+        return rs1_B
+    if is_number(rs2_B)==0:
+        return rs2_B
     opcode = "0100011"
 
     if key == "sb":
@@ -241,6 +282,10 @@ def B_type(ins,r1,r2,imm,currentpc):
     opcode = '1100011'
     r1_ = register(r1)
     r2_ = register(r2)
+    if is_number(r1_)==0:
+        return r1_
+    if is_number(r2_)==0:
+        return r2_ 
     func3=""
     if ins == "beq":
         func3 = "000"
@@ -284,6 +329,8 @@ def U_Type(key,rd,imm):
         return "ERROR: U-type immediate out of 20-bit signed range"
     imm_20bit = format(imm & 0xFFFFF, '020b')
     rd_B= register(rd)
+    if is_number(rd_B)==0:
+        return rd_B
     if key=="lui":
         opcode="0110111"
     elif key=="auipc":
@@ -304,6 +351,9 @@ def J_Type(key,rd,offset):
     offset_20bit = format(imm, '021b')
 
     rd_B= register(rd)
+    if is_number(rd_B)==0:
+        return rd_B
+
     opcode="1101111"
     return(offset_20bit[0]+offset_20bit[10:20]+offset_20bit[9]+offset_20bit[1:9]+rd_B+opcode)
 
