@@ -26,10 +26,10 @@ The program to designed to read the assembly instructions from an input file, pr
         Detect Labels
                │
                │
-       Validate Syntax
+    Determine Instruction Type
                │
                │
-      Determine Instruction Type
+         Validate Syntax
                │
                │
         Encode Instruction
