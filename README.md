@@ -66,6 +66,12 @@ The assembler performs multiple checks:
 - Undefined labels
 - Invalid branch offsets
 
+Depending on the instruction type, we duly check:
+1. Incorrect syntax
+2. Immediate range errors
+3. Undefined labels
+4. Invalid branch offsets
+
 ### 3. Encoding Stage
 
 Each instruction is encoded based on its type and is sent to the following functions:
@@ -115,7 +121,7 @@ We made sure to implement the ones that were stated in the instruction PDF, whic
 | 12 bits   |5bits| 3 bits |5bits|7 bits |
 ```
 ### S-type
-- `sw`
+- `sw`,`sb`,`sh`
 ```
 | imm[11:5] | rs2 | rs1 | funct3 | imm[4:0] | opcode |
 ```
@@ -155,9 +161,9 @@ This assembler is maintained to ensure a valid halt is provided as the very last
 A program will be encoded only if the last instruction is in the format of:
 
 - `jal <reg>, 0`
-- `jal <reg>, <last_label>` where PC matches that label
+- `<last_label>: jal <reg>, <last_label>` where PC matches that label
 - `beq <reg>, <same_reg>, 0`
-- `beq <reg1>, <reg2>, <last_label>` where PC matches that label
+- `<last_label>: beq <reg1>, <reg2>, <last_label>` where PC matches that label
 
 If this condition is not met, it will return:
 
