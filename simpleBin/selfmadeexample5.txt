@@ -1,0 +1,5 @@
+addi t0,zero,5
+beq t0,zero,end
+addi t1,zero,3
+end: addi t2,zero,7
+beq zero,zero,0

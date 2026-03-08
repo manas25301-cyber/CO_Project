@@ -1,0 +1,17 @@
+addi sp,zero,64
+addi ra,zero,10
+addi t0,zero,5
+
+loop1: add t1,t0,ra
+sub ra,ra,t0
+bne ra,zero,loop1
+
+jal ra,func
+addi t2,zero,3
+
+func: addi t3,zero,7
+sw t3,0(sp)
+lw t4,0(sp)
+jalr zero,ra,0
+
+beq zero,zero,0

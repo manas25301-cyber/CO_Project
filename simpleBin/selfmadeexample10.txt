@@ -1,0 +1,9 @@
+addi sp,zero,32
+addi ra,zero,4
+loop: add t0,t1,t2
+sub t1,t1,t0
+blt t0,t1,loop
+jal ra,end
+addi t2,t2,1
+end: sw t0,0(sp)
+beq zero,zero,0
