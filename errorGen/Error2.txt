@@ -1,0 +1,15 @@
+addi sp,zero,128
+addi s0,zero,3
+addi s1,zero,7
+sw s0,0(sp)
+sw s1,4(sp)
+lw t0,0(sp)
+lw t1,4(sp)
+add t2,t0,t1
+xor t3,t2,s1
+addi t1,t1,-1
+blt t1,zero,end
+jal zero,loop
+addi t2,t2
+end: add s2,t2,t3
+beq zero,zero,0
