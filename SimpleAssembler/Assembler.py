@@ -89,6 +89,8 @@ def virtual_halt():
         output_list.append("ERROR: VALID PROGRAM HALT MISSING")
 virtual_halt()
 
+
+
 def main():
     if len(output_list)==0:
         for exe in cmd:

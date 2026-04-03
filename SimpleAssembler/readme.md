@@ -3,7 +3,7 @@
 ## Project Description
 We implemented a RISC-V assembler written in Python that converts RISC-V assembly instructions into 32-bit machine code.
 
-The program to designed to read the assembly instructions from an input file, process them, and then write the corresponding machine code or error messages into an output file.
+The program is designed to read the assembly instructions from an input file, process them, and then write the corresponding machine code or error messages into an output file.
 
 ## Objectives for the Assembler
 - Parse RISC-V assembly instructions.
