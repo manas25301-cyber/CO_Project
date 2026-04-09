@@ -126,12 +126,7 @@ def S_type(instr):
     imm2 = instr[20:25]
     opcode = instr[25:32]
 
-    imm = imm1 + imm2
-    imm = int(imm, 2)
-
-    if imm & (1 << 11):
-        imm -= (1 << 12)
-
+    imm = B_To_D(imm1 + imm2)
     src1 = register(rs1)
     src2 = register(rs2)
 
