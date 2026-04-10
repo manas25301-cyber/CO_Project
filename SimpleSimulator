@@ -25,6 +25,8 @@ base=0x00010000
 for i in range(32):
     memory[base+i*4]=0 #initilize memory with 32 words (128 bytes) starting from address 0x00010000
 
+registers['sp'] = 0x17c  # required initial stack pointer value
+
 f=open(output_file, 'w')
 f.close() #Ensures output file exists and empty before writing
 
@@ -37,7 +39,8 @@ def write_register():
 def write_memory():
     with open(output_file, 'a') as f:
         for addr in sorted(memory.keys()):
-            f.write("0x" + format(addr, '08X') + " : " + "0b" + format(memory[addr] & 0xFFFFFFFF, '032b') + "\n")
+            if base <= addr <= base + 31*4:  # only output the pre-initialized range
+                f.write("0x" + format(addr, '08X') + ":0b" + format(memory[addr] & 0xFFFFFFFF, '032b') + "\n")
 
 def main():
     current_pc = 0
@@ -46,11 +49,8 @@ def main():
         instruction=cmd[i]
         opcode = instruction[25:32]
         if len(instruction)!=32:
-            with open(output_file, 'a') as f:
-                f.write(f"Invalid instruction at PC {current_pc}")
             return -1
         if opcode == "0110011": #R-type
-            print("R-type instruction detected at PC "+hex(current_pc))
             R_type(instruction)
             current_pc += 4
             i+=1
@@ -58,7 +58,6 @@ def main():
             PC_BOUND(current_pc,cmd)
 
         elif (opcode == "0010011" or opcode == "0000011" or opcode == "1100111"): #I-type
-            print("I-type instruction detected at PC "+hex(current_pc))
             edited, final_pc, final_i = I_type(current_pc, instruction, i)
             if not edited:
                 current_pc += 4
@@ -70,7 +69,6 @@ def main():
             PC_BOUND(current_pc, cmd)
 
         elif opcode == "0100011": #S-type
-            print("S-type instruction detected at PC "+hex(current_pc))
             S_type(current_pc, instruction)
             current_pc += 4
             i+=1
@@ -78,16 +76,18 @@ def main():
             PC_BOUND(current_pc, cmd)
 
         elif opcode == "1100011":  # B-type
-            print("B-type instruction detected at PC " + hex(current_pc))
             edited, final_pc, final_i = B_type(current_pc, instruction, i)
             if not edited:
                 current_pc += 4
                 i += 1
-            elif edited==2:
+            elif edited == 2:  # halt: BEQ zero,zero,0 — write final state then memory
+                zero_value_error()
                 with open(output_file, 'a') as f:
-                     f.write("VIRTUAL HALT INITIATED: PROGRAM STOPS\n")
+                    f.write(f"0b{current_pc:032b} ")
+                write_register()
                 write_memory()
-                print("VIRTUAL HALT INITIATED: PROGRAM STOPS")
+                return 0
+            elif edited == -1:  # misaligned PC error
                 return -1
             else:
                 current_pc = final_pc
@@ -96,7 +96,6 @@ def main():
             PC_BOUND(current_pc, cmd)
 
         elif (opcode == "0110111" or opcode == "0010111"): #U-type
-            print("U-type instruction detected at PC "+hex(current_pc))
             U_type(current_pc, instruction)
             current_pc += 4
             i+=1
@@ -104,13 +103,8 @@ def main():
             PC_BOUND(current_pc, cmd)
 
         elif opcode == "1101111":  # J-type
-            print("J-type instruction detected at PC " + hex(current_pc))
             current_pc, i = J_type(current_pc, instruction, i)
             if (current_pc==-1)and(i==-1):
-                with open(output_file, 'a') as f:
-                     f.write("VIRTUAL HALT INITIATED: PROGRAM STOPS\n")
-                write_memory()
-                print("VIRTUAL HALT INITIATED: PROGRAM STOPS")
                 return -1
             if (current_pc==-1)and(i==-2):
                 return -1
@@ -118,8 +112,6 @@ def main():
             PC_BOUND(current_pc, cmd)
 
         else: #Invalid opcode
-            with open(output_file, 'a') as f:
-                f.write(f"Invalid instruction at PC {current_pc:032b}")
             return -1
         with open(output_file, 'a') as f:
             f.write(f"0b{current_pc:032b} ")
@@ -182,11 +174,11 @@ def R_type(instruction):
     func3 = instruction[17:20]
     rd = instruction[20:25]
 
-    src1 = register(rs1)  #register function to call the required register(bit to names)
+    src1 = register(rs1)
     src2 = register(rs2)
     dest = register(rd)
 
-    value1=registers[src1]   #registers function for reading the value in register internally(read registers value)
+    value1=registers[src1]
     value2 = registers[src2]
 
     if func3 == "000" and func7 == "0000000":  #add
@@ -236,9 +228,9 @@ def I_type(current_pc, instruction, i):
     rd=instruction[20:25]
     opcode=instruction[25:32]
 
-    imm=int(imm, 2)
-    if imm & (1 << 11):
-        imm -= 1 << 12
+    imm_val=int(imm, 2)
+    if imm_val & (1 << 11):
+        imm_val -= 1 << 12
         
     src_reg=register(rs1)
     dest_reg=register(rd)
@@ -250,12 +242,18 @@ def I_type(current_pc, instruction, i):
     if opcode=="0010011":
         if funct3=="000":
             #addi
-            write_reg(dest_reg, registers[src_reg] + imm)
+            write_reg(dest_reg, registers[src_reg] + imm_val)
+
+        # FIX (missing): slti
+        elif funct3=="010":
+            #slti
+            if signed_32_bits(registers[src_reg]) < imm_val:
+                write_reg(dest_reg, 1)
+            else:
+                write_reg(dest_reg, 0)
 
         elif funct3=="011":
-            #sltiu
-            # Compare as unsigned values
-            if unsigned_32_bits(registers[src_reg]) < unsigned_32_bits(imm):
+            if unsigned_32_bits(registers[src_reg]) < unsigned_32_bits(imm_val):
                 write_reg(dest_reg, 1)
             else:
                 write_reg(dest_reg, 0)
@@ -263,22 +261,18 @@ def I_type(current_pc, instruction, i):
     elif opcode=="0000011":
         if funct3=="010":
             #lw
-            address=registers[src_reg] + imm
+            address=registers[src_reg] + imm_val
             if address%4!= 0:
-                with open(output_file, 'a') as f:
-                    f.write(f"Error: Unaligned memory access at address {address:08x}\n")
                 raise Exception(f"Unaligned memory access at address {address:08x}")
             
-            value=memory.get(address, 0) #default value is 0 if address not in memory
-            write_reg(dest_reg, value)
+            value=memory.get(address, 0)
+            write_reg(dest_reg, signed_32_bits(value))
     
     elif opcode=="1100111": #jalr
         if funct3=="000":
-            target=(registers[src_reg] + imm) & ~1
+            target=(registers[src_reg] + imm_val) & 0xFFFFFFFE
             write_reg(dest_reg, current_pc + 4)
             if target%4!=0:
-                with open(output_file, 'a') as f:
-                    f.write(f"Error: Misaligned PC at address {target:032b}\n")
                 raise Exception(f"Misaligned PC at address {target:032b}")
             final_pc=target
             final_i=final_pc//4
@@ -288,8 +282,8 @@ def I_type(current_pc, instruction, i):
 
 def S_type(current_pc, instr):
     imm1 = instr[0:7]
-    rs2 = int(instr[7:12], 2)
-    rs1 = int(instr[12:17], 2)
+    rs2 = register(instr[7:12])
+    rs1 = register(instr[12:17])
     funct3 = instr[17:20]
     imm2 = instr[20:25]
     
@@ -299,18 +293,13 @@ def S_type(current_pc, instr):
     
     if funct3 == "010":  # SW
         if addr % 4 != 0:
-            with open(output_file, 'a') as f:
-                f.write(f"Error: Unaligned memory access at address {addr:08x}\n")
             raise Exception(f"Unaligned memory access at address {addr:08x}")
         
-        # Initialize if address not present
         if addr not in memory:
             memory[addr] = 0
             
         memory[addr] = registers[rs2] & 0xFFFFFFFF
     else:
-        with open(output_file, 'a') as f:
-            f.write(f"Invalid S-type instruction at PC {current_pc:032b}\n")
         raise Exception(f"Invalid S-type instruction at PC {current_pc:032b}")
 
 def B_type(current_pc, instruction, i):
@@ -320,10 +309,8 @@ def B_type(current_pc, instruction, i):
     imm = instruction[0] + instruction[24] + instruction[1:7] + instruction[20:24] + "0"
     imm = two_compliment(imm)
     edited = 0
-    # Treat register values as signed for blt/bge
     val1 = registers[register(r1)]
     val2 = registers[register(r2)]
-    # Sign extend for signed comparisons
     if val1 & 0x80000000:
         val1_signed = val1 - 0x100000000
     else:
@@ -359,13 +346,11 @@ def B_type(current_pc, instruction, i):
             current_pc += imm
             i = current_pc // 4
     if current_pc % 4 != 0:
-        with open(output_file, 'a') as f:
-            f.write(f"Error: Misaligned PC at address {current_pc:032b}\n")
         return -1, current_pc, i
     return edited, current_pc, i
 
 def U_type(current_pc, instr):
-    imm = int(instr[0:20], 2) << 12   # upper 20 bits shifted left
+    imm = int(instr[0:20], 2) << 12
     rd = register(instr[20:25])
     opcode = instr[25:32]
 
@@ -376,8 +361,6 @@ def U_type(current_pc, instr):
         write_reg(rd, unsigned_32_bits(current_pc + imm))
 
     else:
-        with open(output_file, 'a') as f:
-            f.write(f"Invalid U-type instruction at PC {current_pc:032b}\n")
         raise Exception(f"Invalid U-type instruction at PC {current_pc:032b}")
 
     return 0
@@ -388,15 +371,11 @@ def J_type(current_pc, instruction, i):
     imm = two_compliment(imm)
 
     if imm==0:
-        with open(output_file, 'a') as f:
-            f.write("VIRTUAL HALT INITIATED: PROGRAM STOPS")
         return -1,-1
     dest_reg = register(rd)
     write_reg(dest_reg, unsigned_32_bits(current_pc + 4))
     new_pc = current_pc + imm
     if new_pc % 4 != 0:
-        with open(output_file, 'a') as f:
-            f.write(f"Error: Misaligned PC at address {new_pc:032b}\n")
         raise Exception(f"Misaligned PC at address {new_pc:032b}")
     i = new_pc // 4
     return new_pc, i
