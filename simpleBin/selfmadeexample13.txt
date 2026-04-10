@@ -1,0 +1,4 @@
+addi t0,zero,3
+jal ra,8
+addi t1,zero,5
+beq zero,zero,0

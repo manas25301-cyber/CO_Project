@@ -1,0 +1,7 @@
+addi t0,zero,1
+jal ra,A
+addi t1,zero,2
+A: jal ra,B
+addi t2,zero,3
+B: addi t3,zero,4
+beq zero,zero,0

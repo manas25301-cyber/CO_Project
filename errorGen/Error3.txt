@@ -1,0 +1,15 @@
+addi a0,zero,5000
+addi a1,zero,1
+addi a2,zero,0
+loop: add a2,a2,a1
+addi a1,a1,1
+bne a1,a0,loop
+sw a2,0(sp)
+lw s0,0(sp)
+sub s1,s0,a0
+slt s2,s1,a1
+or s3,s2,a0
+jal ra,func
+addi s4,zero,9
+func: add t0,s4,s3
+beq zero,zero,0

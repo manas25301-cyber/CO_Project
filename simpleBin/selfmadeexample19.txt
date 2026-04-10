@@ -1,0 +1,8 @@
+addi sp,zero,16
+addi t0,zero,5
+sw t0,0(sp)
+lw t1,0(sp)
+beq t0,t1,ok
+addi t2,zero,9
+ok: addi t3,zero,1
+beq zero,zero,0

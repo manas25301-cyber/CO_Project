@@ -1,0 +1,15 @@
+addi t0,zero,5
+addi t1,zero,10
+add t2,t0,t1
+sub t3,t2,t0
+slt t4,t3,t1
+addi t5,t4,1
+bne t5,t0,loop
+sw t2,0(sp)
+lw s0,0(sp)
+addi s1,s0,-3
+jal ra,finish
+addi t7,zero,2
+finish: add s2,s1,t0
+addi t0,t0,1
+beq zero,zero,0

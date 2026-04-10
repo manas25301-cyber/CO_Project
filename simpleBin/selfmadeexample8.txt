@@ -1,0 +1,5 @@
+addi t0,zero,5
+jal ra,target
+addi t1,zero,9
+target: addi t2,zero,1
+beq zero,zero,0
