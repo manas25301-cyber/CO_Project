@@ -215,8 +215,6 @@ def R_type(instruction):
         write_reg(dest, value1 & value2)
 
     else:
-        with open(output_file, 'a') as f:
-            f.write("Invalid R-type instruction\n")
         raise Exception("Invalid R-type instruction")
 
     return 0
